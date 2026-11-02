@@ -8,6 +8,8 @@ export default function Home() {
   const [inputEmail, setInputEmail] = useState('');
   const [inputPassword, setInputPassword] = useState('');
   const [welcome, setWelcome] = useState("Welcome!");
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [newTask, setNewTask] = useState('');
 
   const supabaseUrl = "https://xkmknlcfyloulpjyjylr.supabase.co";
   const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrbWtubGNmeWxvdWxwanlqeWxyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI3ODcxOTksImV4cCI6MjEwODM2MzE5OX0.EjW8I9aHC1P_DIahP_Fwid0OqAtFzD5EGwEXIEpXtxI";
@@ -37,6 +39,7 @@ export default function Home() {
         alert(error.message)
       } else {
         setWelcome('Welcome ' + user.email +'!')
+        setLoggedIn(true)
       }
     }
   }
@@ -49,7 +52,42 @@ export default function Home() {
     } else {
       alert("User successfully logged out!")
       setWelcome('Welcome!')
+      setLoggedIn(false)
     }
+  }
+
+  const addTask = async () => {
+    const { data, error } = await supabaseClient.from("new tasks").insert([{ task: newTask, completed: false }])
+
+    if (error) {
+      alert(error.message)
+    } else {
+      alert("Task added successfully!")
+    }
+  }
+
+  const getTasks = async () => {
+    const { data } = await supabaseClient.from("new tasks").select("*")
+
+    return data.map((task, index) => (
+      <li key={index}>
+        {task.task}
+        <button onClick={completeTask(task.id)}>Complete</button>
+        <button onClick={deleteTask(task.id)}>Delete</button>
+      </li>
+    ))
+  }
+
+  const completeTask = async (id) => {
+    const { data, error } = await supabaseClient.from("new tasks"). update({ completed: true }).eq("id", id).select()
+
+    if (error) {
+      alert(error.message)
+    }
+  }
+
+  const deleteTask = async (id) => {
+    const { error } = await supabaseClient.from("new tasks").delete().eq("id", id)
   }
   
   return (
@@ -87,6 +125,28 @@ export default function Home() {
 
           <h2 style={{fontSize: '24px'}}>Dashboard</h2>
           <p>{welcome}</p>
+
+          {loggedIn ? (
+            <>
+              <h2 style={{fontSize: '24px'}}>Task App</h2>
+              <input 
+                type="text"
+                placeholder="Enter a task"
+                value={newTask}
+                onChange={(e) => setNewTask(e.target.value)} 
+                style={{padding: '10px 20px', backgroundColor: '#b0b0b0'}}
+              />
+              <button onClick={addTask} style={{padding: '10px 20px', backgroundColor: '#0207ab', color: '#FFF'}}>Add Task</button>
+
+              <h3>Tasks</h3>
+              <ul>
+                {getTasks()}
+              </ul>
+            </>
+          ) : (
+            <p>Log In to access tasks list</p>
+          )}
+
         </div>
         <div>
           
