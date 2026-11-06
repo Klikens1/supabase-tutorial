@@ -10,9 +10,10 @@ export default function Home() {
   const [welcome, setWelcome] = useState("Welcome!");
   const [loggedIn, setLoggedIn] = useState(false);
   const [newTask, setNewTask] = useState('');
+  const [uploading, setUploading] = useState(false);
 
-  const supabaseUrl = "https://xkmknlcfyloulpjyjylr.supabase.co";
-  const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrbWtubGNmeWxvdWxwanlqeWxyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI3ODcxOTksImV4cCI6MjEwODM2MzE5OX0.EjW8I9aHC1P_DIahP_Fwid0OqAtFzD5EGwEXIEpXtxI";
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_KEY;
 
   const supabaseClient = createClient(supabaseUrl, supabaseKey)
 
@@ -89,6 +90,37 @@ export default function Home() {
   const deleteTask = async (id) => {
     const { error } = await supabaseClient.from("new tasks").delete().eq("id", id)
   }
+
+  const handleUpload = async (event) => {
+    try {
+      setUploading(true)
+
+      if (!event.target.files || event.target.files.length === 0) {
+        alert("You must select an image to upload")
+      }
+
+      const file = event.target.files[0]
+      const fileExt = file.name.split('.').pop()
+      const filePath = `${Math.random()}.${fileExt}`
+
+      const { data, error } = await supabaseClient.storage
+        .from('images') // Replace with your actual bucket name
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+
+      if (error) throw error
+      else {
+        alert('Image uploaded successfully!')
+        console.log('Stored file information:', data)
+      }      
+    } catch (error) {
+      alert(error.message)
+    } finally {
+      setUploading(false)
+    }
+  }
   
   return (
     <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
@@ -142,6 +174,18 @@ export default function Home() {
               <ul>
                 {getTasks()}
               </ul>
+
+              <h3>Image Upload</h3>
+              <label htmlFor="single">
+                {uploading ? 'Uploading ...' : 'Upload Image'}
+              </label>
+              <input
+                type="file"
+                id="single"
+                accept="image/*"
+                onChange={handleUpload}
+                disabled={uploading}
+              />
             </>
           ) : (
             <p>Log In to access tasks list</p>
